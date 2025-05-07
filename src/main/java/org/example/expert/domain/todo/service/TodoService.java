@@ -2,6 +2,7 @@ package org.example.expert.domain.todo.service;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 import io.micrometer.common.util.StringUtils;
 import jakarta.persistence.EntityManager;
@@ -133,6 +134,9 @@ public class TodoService {
 			.join(t.user, u).fetchJoin()
 			.where(t.id.eq(todoId))
 			.fetchFirst();
+
+		Optional.ofNullable(todo)
+			.orElseThrow(() -> new InvalidRequestException("Todo not found"));
 
 		User user = todo.getUser();
 
