@@ -26,4 +26,8 @@ public class Manager {
         this.user = user;
         this.todo = todo;
     }
+
+    // public void setTodo(Todo todo){
+    //     this.todo = todo;
+    // }
 }
