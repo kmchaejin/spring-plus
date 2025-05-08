@@ -11,8 +11,10 @@ import jakarta.persistence.TypedQuery;
 import lombok.RequiredArgsConstructor;
 
 import org.example.expert.client.WeatherClient;
-import org.example.expert.domain.common.dto.AuthUser;
+import org.example.expert.domain.comment.entity.QComment;
 import org.example.expert.domain.common.exception.InvalidRequestException;
+import org.example.expert.domain.manager.entity.QManager;
+import org.example.expert.domain.todo.dto.response.TodoSearchResponse;
 import org.example.expert.domain.todo.dto.request.TodoSaveRequest;
 import org.example.expert.domain.todo.dto.response.TodoResponse;
 import org.example.expert.domain.todo.dto.response.TodoSaveResponse;
@@ -31,6 +33,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.querydsl.core.types.Projections;
+import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 
 @Service
@@ -154,5 +158,51 @@ public class TodoService {
 			todo.getCreatedAt(),
 			todo.getModifiedAt()
 		);
+	}
+
+	public Page<TodoSearchResponse> searchTodos(String title, String nickname, LocalDate createdFrom, LocalDate createdTo, int page, int size) {
+		JPAQueryFactory queryFactory = new JPAQueryFactory(em);
+		QTodo todo = QTodo.todo;
+		QUser user = QUser.user;
+		QManager manager = QManager.manager;
+		QComment comment = QComment.comment;
+
+		// projection
+		// JPAExpression
+		List<TodoSearchResponse> responseDto = queryFactory
+			.select(Projections.constructor(TodoSearchResponse.class,
+				todo.title,
+				JPAExpressions
+					.select(manager.count())
+					.from(manager)
+					.where(manager.todo.id.eq(todo.id)),
+				JPAExpressions
+					.select(comment.count())
+					.from(comment)
+					.where(comment.todo.id.eq(todo.id))))
+			.from(todo)
+			.where(
+				StringUtils.isBlank(title) ? null : todo.title.like("%" + title + "%"),
+				StringUtils.isBlank(nickname) ? null : todo.user.nickname.like("%" + nickname + "%"),
+				createdFrom == null ? null : todo.createdAt.after(createdFrom.atStartOfDay()),
+				createdTo == null ? null : todo.createdAt.before(createdTo.atTime(23, 59, 59))
+			)
+			.offset((long) (page - 1) * size)
+			.limit(size)
+			.orderBy(todo.createdAt.desc())
+			.fetch();
+
+		Long total = Optional.ofNullable(queryFactory
+			.select(todo.count())
+			.from(todo)
+			.where(
+				StringUtils.isBlank(title) ? null : todo.title.like("%" + title + "%"),
+				StringUtils.isBlank(nickname) ? null : todo.user.nickname.like("%" + nickname + "%"),
+				createdFrom == null ? null : todo.createdAt.after(createdFrom.atStartOfDay()),
+				createdTo == null ? null : todo.createdAt.before(createdTo.atTime(23, 59, 59))
+			).fetchOne())
+			.orElse(0L);
+
+		return new PageImpl<>(responseDto, PageRequest.of(page, size), total);
 	}
 }

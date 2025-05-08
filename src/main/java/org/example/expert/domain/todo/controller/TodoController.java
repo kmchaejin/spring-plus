@@ -5,7 +5,7 @@ import java.time.LocalDate;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
-import org.example.expert.domain.common.dto.AuthUser;
+import org.example.expert.domain.todo.dto.response.TodoSearchResponse;
 import org.example.expert.domain.todo.dto.request.TodoSaveRequest;
 import org.example.expert.domain.todo.dto.response.TodoResponse;
 import org.example.expert.domain.todo.dto.response.TodoSaveResponse;
@@ -44,5 +44,18 @@ public class TodoController {
 	@GetMapping("/todos/{todoId}")
 	public ResponseEntity<TodoResponse> getTodo(@PathVariable long todoId) {
 		return ResponseEntity.ok(todoService.getTodo(todoId));
+	}
+
+	// level 3-10
+	@GetMapping("/search/todos")
+	public ResponseEntity<Page<TodoSearchResponse>> searchTodos(
+		@RequestParam(required = false) String title,
+		@RequestParam(required = false) String nickname,
+		@RequestParam(required = false) LocalDate createdFrom,
+		@RequestParam(required = false) LocalDate createdTo,
+		@RequestParam(defaultValue = "1") int page,
+		@RequestParam(defaultValue = "10") int size
+		){
+		return ResponseEntity.ok(todoService.searchTodos(title, nickname, createdFrom, createdTo, page, size));
 	}
 }
