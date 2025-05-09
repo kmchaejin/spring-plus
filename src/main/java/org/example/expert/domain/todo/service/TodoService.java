@@ -163,7 +163,6 @@ public class TodoService {
 	public Page<TodoSearchResponse> searchTodos(String title, String nickname, LocalDate createdFrom, LocalDate createdTo, int page, int size) {
 		JPAQueryFactory queryFactory = new JPAQueryFactory(em);
 		QTodo todo = QTodo.todo;
-		QUser user = QUser.user;
 		QManager manager = QManager.manager;
 		QComment comment = QComment.comment;
 
