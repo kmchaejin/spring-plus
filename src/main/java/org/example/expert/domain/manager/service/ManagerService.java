@@ -37,7 +37,7 @@ public class ManagerService {
         Long userId = Long.parseLong(userPrincipal.getUsername());
 
         // logging
-        logService.logSaveManager(userId);
+        logService.logSaveManager();
 
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new InvalidRequestException("User not found"));

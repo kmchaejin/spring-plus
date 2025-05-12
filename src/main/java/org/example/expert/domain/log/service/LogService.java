@@ -15,8 +15,8 @@ public class LogService {
 	private final LogRepository logRepository;
 
 	@Transactional(propagation = Propagation.REQUIRES_NEW)
-	public void logSaveManager(Long userId) {
-		Log log = new Log(userId);
+	public void logSaveManager() {
+		Log log = new Log();
 		logRepository.save(log);
 	}
 }

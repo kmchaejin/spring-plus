@@ -12,9 +12,17 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 @Configuration
 @EnableJpaAuditing
-public class PersistenceConfig {
-	@Bean
-	public AuditorAware<Long> auditorProvider() {
-		return () -> Optional.of(Long.parseLong(SecurityContextHolder.getContext().getAuthentication().getName()));
+public class PersistenceConfig implements AuditorAware<Long> {
+	@Override
+	public Optional<Long> getCurrentAuditor() {
+		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+		if (authentication == null || !authentication.isAuthenticated() || authentication.getPrincipal().equals("anonymousUser")) {
+			return Optional.empty(); // 유저 정보 없음
+		}
+
+		CustomUserPrincipal principal = (CustomUserPrincipal) authentication.getPrincipal();
+
+		return Optional.of(Long.parseLong(principal.getUsername()));
 	}
 }

@@ -34,8 +34,4 @@ public class Log {
 	@CreatedBy
 	@Column(updatable = false)
 	private Long userId;
-
-	public Log(Long userId){
-		this.userId = userId;
-	}
 }

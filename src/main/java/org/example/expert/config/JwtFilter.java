@@ -40,6 +40,8 @@ public class JwtFilter implements Filter {
 
 		String url = httpRequest.getRequestURI();
 
+		System.out.println("url ---> " + url);
+
 		if (url.startsWith("/auth")) {
 			chain.doFilter(request, response);
 			return;
