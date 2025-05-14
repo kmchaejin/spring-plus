@@ -1,5 +1,6 @@
 package org.example.expert.domain.auth.controller;
 
+import static org.example.expert.domain.user.enums.UserRole.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.BufferedReader;
@@ -11,33 +12,43 @@ import java.util.List;
 
 import org.example.expert.domain.auth.dto.request.SignupRequest;
 import org.example.expert.domain.auth.service.AuthService;
+import org.example.expert.domain.user.entity.User;
+import org.example.expert.domain.user.repository.UserRepository;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.junit.jupiter.api.TestInstance;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.jdbc.Sql;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Random;
 
-@ActiveProfiles("test")
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+
+@TestInstance(TestInstance.Lifecycle.PER_CLASS) // @BeforeAll 어노테이션 사용하려고 적용
+@ActiveProfiles("test") // 그냥 트랜잭셔널 어노테이션 쓰면 테스트 종료 후에 DB 원복 되지 않나
 @SpringBootTest
-@Sql("classpath:/init_table.sql")
-@ExtendWith(MockitoExtension.class)
+@Sql("classpath:/init_table.sql") // 이 클래스 로딩될 때 실행하는 어노테이션인가?
 class AuthControllerTest {
 
-	@MockBean
-
-	@InjectMocks
+	@Autowired
 	AuthService authService;
 
-	@Test
-	void 유저_100만건_생성() {
-		// given - user data 생성
-		// 랜덤 닉네임 요소 로딩
+	@Autowired
+	UserRepository userRepository;
+
+	@PersistenceContext
+	EntityManager entityManager;
+
+	@Transactional(propagation = Propagation.NOT_SUPPORTED)
+	@BeforeAll
+	void insertUserData() {
+		// given
+		// 랜덤 닉네임 로딩
 		List<String> adjectives = new ArrayList<>();
 		List<String> characters = new ArrayList<>();
 		List<String> codes = new ArrayList<>();
@@ -70,16 +81,32 @@ class AuthControllerTest {
 			throw new RuntimeException(e);
 		}
 
-		// when - 100만 건 insert
-		for (int i = 0; i < 1000000; i++) {
-			int adjIndex = random.nextInt(adjectives.size());
-			int chrIndex = random.nextInt(characters.size());
-			int codeIndex = random.nextInt(codes.size());
+		int adjSize = adjectives.size();
+		int chrSize = characters.size();
+		int codeSize = codes.size();
 
-			authService.signup(new SignupRequest(i + "@example.com", "pw", "USER",
+		// user 데이터 준비
+		List<User> users = new ArrayList<>();
+
+		for (Long i = 1L; i <= 1000000; i++) {
+			int adjIndex = random.nextInt(adjSize);
+			int chrIndex = random.nextInt(chrSize);
+			int codeIndex = random.nextInt(codeSize);
+
+			entityManager.persist(new User(i, i + "@example.com", "pw", USER,
 				adjectives.get(adjIndex) + characters.get(chrIndex) + codes.get(codeIndex)));
-		}
 
-		// then -
+			if(i % 1000 == 0) { // 1000건마다 DB 반영 및 영속성 컨텍스트 초기화(메모리 부족 문제 방지)
+				entityManager.flush();
+				entityManager.clear();
+				//userRepository.saveAll(users); 내부적으로 save를 반복 실행하므로 이 경우는 properties에 batchsize 설정 필요
+			}
+		}
+	}
+
+
+	@Test
+	void 유저_100만건_생성() {
+
 	}
 }

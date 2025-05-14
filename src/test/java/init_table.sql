@@ -1,5 +1,5 @@
 create table users (
-    id bigint auto_increment,
+    id bigint auto_increment primary key,
     created_at datetime(6),
     modified_at datetime(6),
     email varchar(255),
