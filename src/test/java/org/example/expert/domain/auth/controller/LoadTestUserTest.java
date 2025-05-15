@@ -1,7 +1,6 @@
 package org.example.expert.domain.auth.controller;
 
 import static org.example.expert.domain.user.enums.UserRole.*;
-import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -9,11 +8,11 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
-import org.example.expert.domain.auth.dto.request.SignupRequest;
-import org.example.expert.domain.auth.service.AuthService;
 import org.example.expert.domain.user.entity.User;
 import org.example.expert.domain.user.repository.UserRepository;
+import org.example.expert.domain.user.service.UserService;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -21,34 +20,24 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.jdbc.Sql;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Random;
-
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
-
+//@Sql(scripts = "classpath:/init_table.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS) // @BeforeAll 어노테이션 사용하려고 적용
-@ActiveProfiles("test") // 그냥 트랜잭셔널 어노테이션 쓰면 테스트 종료 후에 DB 원복 되지 않나
+@ActiveProfiles("test")
 @SpringBootTest
-@Sql("classpath:/init_table.sql") // 이 클래스 로딩될 때 실행하는 어노테이션인가?
-class AuthControllerTest {
-
-	@Autowired
-	AuthService authService;
+public abstract class LoadTestUserTest {
 
 	@Autowired
 	UserRepository userRepository;
 
-	@PersistenceContext
-	EntityManager entityManager;
+	@Autowired
+	UserService userService;
 
-	@Transactional(propagation = Propagation.NOT_SUPPORTED)
+	//private static MySQLContainer<?> container = new MySQLContainer<>("mysql:8");
+
 	@BeforeAll
 	void insertUserData() {
-		// given
-		// 랜덤 닉네임 로딩
+		//랜덤 닉네임 로딩
 		List<String> adjectives = new ArrayList<>();
 		List<String> characters = new ArrayList<>();
 		List<String> codes = new ArrayList<>();
@@ -56,13 +45,13 @@ class AuthControllerTest {
 		Random random = new Random();
 
 		try (
-			InputStream adjStream = ClassLoader.getSystemResourceAsStream("adjectives.txt");
+			InputStream adjStream = ClassLoader.getSystemResourceAsStream("strings/adjectives.txt");
 			BufferedReader adjReader = new BufferedReader(new InputStreamReader(adjStream));
 
-			InputStream chrStream = ClassLoader.getSystemResourceAsStream("characters.txt");
+			InputStream chrStream = ClassLoader.getSystemResourceAsStream("strings/chracters.txt");
 			BufferedReader chrReader = new BufferedReader(new InputStreamReader(chrStream));
 
-			InputStream codeStream = ClassLoader.getSystemResourceAsStream("codes.txt");
+			InputStream codeStream = ClassLoader.getSystemResourceAsStream("strings/codes.txt");
 			BufferedReader codeReader = new BufferedReader(new InputStreamReader(codeStream))) {
 
 			String str;
@@ -93,20 +82,25 @@ class AuthControllerTest {
 			int chrIndex = random.nextInt(chrSize);
 			int codeIndex = random.nextInt(codeSize);
 
-			entityManager.persist(new User(i, i + "@example.com", "pw", USER,
+			users.add(new User(i + "@example.com", "pw", USER,
 				adjectives.get(adjIndex) + characters.get(chrIndex) + codes.get(codeIndex)));
 
-			if(i % 1000 == 0) { // 1000건마다 DB 반영 및 영속성 컨텍스트 초기화(메모리 부족 문제 방지)
-				entityManager.flush();
-				entityManager.clear();
-				//userRepository.saveAll(users); 내부적으로 save를 반복 실행하므로 이 경우는 properties에 batchsize 설정 필요
+			if (i % 1000 == 0) {
+				userRepository.saveAll(users); // 내부적으로 각 user를 반복실행하므로 배치사이즈 설정 필요
+				users.clear(); // 리스트에 최대 1000개만 들어가도록
 			}
 		}
 	}
 
-
 	@Test
-	void 유저_100만건_생성() {
+	public void 닉네임으로_유저조회(){
+		// given
+		String nickname = "졸린잠만보200";
+
+		// when
+		List<User> uesrs = userService.findByNickname(nickname);
+
+		// then
 
 	}
 }

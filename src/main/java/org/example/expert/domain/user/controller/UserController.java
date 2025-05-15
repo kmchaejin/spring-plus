@@ -1,14 +1,14 @@
 package org.example.expert.domain.user.controller;
 
 import java.io.IOException;
+import java.util.List;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
-import lombok.val;
 
-import org.example.expert.domain.common.dto.AuthUser;
 import org.example.expert.domain.user.dto.request.UserChangePasswordRequest;
 import org.example.expert.domain.user.dto.response.UserResponse;
+import org.example.expert.domain.user.entity.User;
 import org.example.expert.domain.user.service.UserService;
 import org.example.expert.security.CustomUserPrincipal;
 import org.springframework.http.ResponseEntity;
@@ -44,5 +44,10 @@ public class UserController {
         AmazonS3Client amazonS3Client = new AmazonS3Client();
         String key = "myfolder/" + userPrincipal.getUsername();
         amazonS3Client.putObject("chaejinkim-bucket", key, request.getInputStream(), metadata);
+    }
+
+    @GetMapping("/users/{nickname}")
+    public ResponseEntity<List<User>> findByNickname(@PathVariable String nickname){
+        return ResponseEntity.ok(userService.findByNickname(nickname));
     }
 }
